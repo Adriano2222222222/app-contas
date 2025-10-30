@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="Styles/estilos.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+
+
+<title>Meu primeiro Aplicativo</title>
+
+  
+</head>
+<body>
+
+  <div class="container">
+
+  <h1>Programa Contas do Mês</h1>
+
+  <div id="seletor-mes">
+    <label for="mes">Mês:</label>
+    <select id="mes"></select>
+    <label for="ano">Ano:</label>
+    <input type="number" id="ano" min="2020" max="2030">
+  </div>
+
+  <div id="campo-salario">
+    <label for="salario">Meu Salário do Mês R$:</label>
+    <input type="number" id="salario" step="0.01" placeholder="Ex: 3500.00">
+  </div>
+  
+  <hr>
+
+  <form id="formContas">
+    <p>
+      <label for="inDescricao">Descrição da Conta:</label>
+      <input type="text" id="inDescricao" required>
+    </p>
+    <p>
+      <label for="inValor">Valor da Conta R$:</label>
+      <input type="number" min="0" step="0.01" id="inValor" required>
+    </p>
+    <input type="submit" value="Registrar Conta">
+  </form>
+
+  <hr>
+
+  <h2>Contas Registradas</h2>
+
+  <div class="filtros-container">
+      <button id="filtro-todas" class="filtro-btn active">Mostrar Todas</button>
+      <button id="filtro-pendentes" class="filtro-btn">Mostrar Pendentes</button>
+      <button id="filtro-pagas" class="filtro-btn">Mostrar Pagas</button>
+    </div>
+
+  <ul id="listaContas"></ul>
+
+  <div id="resumoContas">
+  </div>
+    <button id="btnLimparMes" class="btn-limpar">Limpar Conta do Mês</button>
+  </div>
+   <script src="Java/Aplicativo.js"></script>
+
+</body>
+</html>
