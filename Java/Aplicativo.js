@@ -1,0 +1,632 @@
+const frm = document.querySelector("#formContas");  // obtém elementos da página
+const listaContasEl = document.querySelector("#listaContas");
+const resumoContasEl = document.querySelector("#resumoContas");
+const btnSubmit = frm.querySelector("input[type='submit']");  //Seleciona o botão de submit
+const selectMes = document.querySelector("#mes")
+const inputAno = document.querySelector("#ano")
+const inputSalario = document.querySelector("#salario")
+const btnLimparMes = document.querySelector("#btnLimparMes");
+const filtroContainer = document.querySelector(".filtros-container");
+const filtroBtnTodas = document.querySelector("#filtro-todas");
+const filtroBtnPendentes = document.querySelector("#filtro-pendentes");
+const filtroBtnPagas = document.querySelector("#filtro-pagas");
+const modalContainer = document.querySelector("#modal-container");
+const formModal = document.querySelector("#formModal");
+const modalIndice = document.querySelector("#modalIndice");
+const modalDescricao = document.querySelector("#modalDescricao");
+const modalValor = document.querySelector("#modalValor");
+const btnModalCancelar = document.querySelector("#btnModalCancelar");
+const graficoContainer = document.querySelector("#grafico-container");
+const selectOrdenacao = document.querySelector("#ordenacao");
+const inCategoria = document.querySelector("#inCategoria");
+const modalCategoria = document.querySelector("#modalCategoria");
+const inData = document.querySelector("#inData");
+const btnGerenciarCategorias = document.querySelector("#btnGerenciarCategorias");
+const modalCategoriasContainer = document.querySelector("#modal-categorias-container");
+const btnFecharModalCategorias = document.querySelector("#btnFecharModalCategorias");
+const formAddCategoria = document.querySelector("#formAddCategoria");
+const inNovaCategoria = document.querySelector("#inNovaCategoria");
+const listaCategoriasModal = document.querySelector("#lista-categorias-modal");
+const btnTema = document.querySelector("#btnTema");
+
+    //---ESTADO DO APLICATIVO---
+    //Estrututa para armazenar todas as contas, separadas por mês (ex: {"2025-10": [{...}, {...}]})
+    let todasAsContas = JSON.parse(localStorage.getItem("todasAsContas")) || {};
+    let salarioPorMes = JSON.parse(localStorage.getItem("salarioPorMes")) || {};
+
+    //Lógica de Categorias Dinâmicas
+    const defaultCategorias = ['moradia', 'alimentacao', 'transporte', 'lazer', 'saude', 'outros'];
+    let appCategorias = JSON.parse(localStorage.getItem("appCategorias")) || defaultCategorias;
+    //Mapa de cores (permanece o mesmo, mas agora é global)
+    const CORES_CATEGORIAS ={
+        'moradia' : 'rgba(23, 162, 184, 0.8)',
+        'alimentacao' : 'rgba(40, 167, 69, 0.8)',
+        'transporte' : 'rgba(255, 193, 7, 0.8)',
+        'lazer' : 'rgba(253, 126, 20, 0.8)',
+        'saude' : 'rgba(220, 53, 69, 0.8)',
+        'outros' : 'rgba(108, 117, 125, 0.8)'
+    };
+
+    let mesAtualSelecionado = '';
+    let filtroAtual = 'todas';
+    let ordenacaoAtual = 'data-asc'; //Guarda o estado da ordenação
+    let graficoAtual = null; //Variável para guardar a instância do gráfico
+
+        //---FUNÇÕES---
+
+    function salvarDados(){
+        localStorage.setItem("todasAsContas", JSON.stringify(todasAsContas));
+        localStorage.setItem("salarioPorMes", JSON.stringify(salarioPorMes)); //Salva o salario
+    }
+    //Função para salvar categorias
+    function salvarCategorias(){
+        localStorage.setItem("appCategorias", JSON.stringify(appCategorias));
+        popularDropdownsCategorias();//Atualiza os <select>
+   }
+   //Preenche os <select> #inCategoria e #modalCategoria
+   function popularDropdownsCategorias(){
+    //Limpa os dropdowns
+    inCategoria.innerHTML = '';
+    modalCategoria.innerHTML = '';
+
+    //Adiciona a opção "Selecione..."
+    const optionVazia = '<option value="">Selecione...</option>';
+    inCategoria.innerHTML += optionVazia;
+    modalCategoria.innerHTML += optionVazia;
+
+    //Adiciona as categorias salvas
+    appCategorias.forEach(cat =>{
+        const catCapitalizada = cat.charAt(0).toUpperCase() + cat.slice(1);
+        const optionHTML = `<option value="${cat}">${catCapitalizada}</option>`;
+        inCategoria.innerHTML += optionHTML;
+        modalCategoria.innerHTML += optionHTML;
+   }); 
+ }
+
+    //Renderiza a lista de categorias dentro do modal de gerenciamento
+    function renderizarListaCategorias(){
+        listaCategoriasModal.innerHTML = '';
+        appCategorias.forEach(cat => {
+            //Não permite excluir a categoria "outros"
+            const desabilitado = (cat === 'outros') ? 'disabled' : '';
+            const catCapitalizada = cat.charAt(0).toUpperCase() + cat.slice(1);
+
+            listaCategoriasModal.innerHTML += `
+            <li>
+                <span>${catCapitalizada}</span>
+                <button class="btn-excluir-categoria" data-categoria="${cat}" ${desabilitado}>Excluir</button>
+            </li>
+            `;
+        });
+    }
+
+    //Função para atualizar a classe 'active' nos botões de filtro
+    function atualizarBotoesFiltro(){
+        filtroBtnTodas.classList.toggle('active', filtroAtual === 'todas');
+        filtroBtnPendentes.classList.toggle('active', filtroAtual === 'pendentes');
+        filtroBtnPagas.classList.toggle('active', filtroAtual === 'pagas');
+    }
+
+
+    //Função para gerar a mensagem de feedback financeiro
+    function obterMensagemFinanceira(percentualGasto){
+        if(isNaN(percentualGasto) || percentualGasto < 0) {
+            return { texto: '', cor: ''}; //Não mostra mensagem se não houver dados
+        }
+
+        if(percentualGasto <= 40){
+            return{texto: 'Parabéns! Você está gastando bem menos que o seu salário.', cor: 'green' };
+        }else if(percentualGasto <= 70) {
+            return{texto: 'Seus gastos estão na média. Continue controlando!', cor: 'orange' };
+        }else{
+            return{texto: 'Cuidado! Seus gastos estão muito altos. Risco de endividamento!', cor: 'red' };
+        }
+    }
+
+    //Função para renderizar (exibir) as contas na tela(agora tamber desenha o gráfico)
+    function renderizarContasDoMes(){
+        //Destrói o gráfico antigo antes de começar
+        if(graficoAtual){
+            graficoAtual.destroy();
+        }
+
+       //Pega a lista de contas do mês atual. Se não existir, usa uma lista vazia
+        const contasDoMes = todasAsContas[mesAtualSelecionado] || [];
+        const salarioDoMes = salarioPorMes[mesAtualSelecionado] || 0; //Pega o salário do mês, ou 0 se não houver
+
+        //Aplica o filtro antes de renderizar
+        let contasFiltradas = [];
+        if(filtroAtual === 'pendentes'){
+            contasFiltradas = contasDoMes.filter(conta => !conta.paga);
+        }else if(filtroAtual === 'pagas'){
+            contasFiltradas = contasDoMes.filter(conta => conta.paga);
+        }else{
+            contasFiltradas = contasDoMes; //'todas'
+        }
+
+        //Lógica de Ordenação
+        //Ordena a lista filtrada antes de exibi-la
+        contasFiltradas.sort((a, b) =>{
+            switch (ordenacaoAtual){
+                case 'data-asc':
+                    //Coloca contas sem data no final
+                    if(!a.data) return 1;
+                    if(!b.data) return -1;
+                    return new Date(a.data) - new Date(b.data);
+                case 'data-desc':
+                    if(!a.data) return 1;
+                    if(!b.data) return -1;
+                    return new Date(b.data) - new Date(a.data);
+                case 'valor-desc':
+                    return b.valor - a.valor; //Ex: 100 - 50 = 50 (b vem primeiro)            
+                case 'valor-asc':
+                    return a.valor - b.valor; //Ex: 50 - 100 = -50 (a vem primeiro)
+                case 'desc-asc':
+                    return a.descricao.localeCompare(b.descricao); //Ordem alfabética
+                default:
+                    return 0; //Sem ordenação
+            }
+        });
+
+        listaContasEl.innerHTML = "";
+        if(contasDoMes.length === 0 && salarioDoMes === 0){
+            resumoContasEl.innerHTML = "<p>Nenhuma conta registrada para este mês.</p>";
+            listaContasEl.innerHTML = "";
+            graficoContainer.style.display = 'none'; //Esconde o gráfico se não houver dados
+            return;
+        }
+        //Limpa a lista apenas se houver contas, para não apagar o resumo do salário
+        if (contasFiltradas.length === 0) {
+        if (filtroAtual === 'pendentes') {
+            listaContasEl.innerHTML = "<p>Nenhuma conta pendente. Bom trabalho!</p>";
+        } else if (filtroAtual === 'pagas') {
+            listaContasEl.innerHTML = "<p>Nenhuma conta foi paga ainda.</p>";
+        } else {
+            listaContasEl.innerHTML = "<p>Nenhuma conta registrada.</p>";
+        }
+    } else {
+        contasFiltradas.forEach((conta) =>{
+            //Precisamos encontrar o índice original da conta para Edição/Exclusão
+            const indexOriginal = contasDoMes.indexOf(conta);
+
+            const li = document.createElement("li");
+            if(conta.paga) { li.className = "conta-paga"; }
+
+            const chkPaga = document.createElement("input");
+            chkPaga.type = "checkbox"; chkPaga.checked = conta.paga; chkPaga.className = "chk-paga";
+            chkPaga.dataset.index = indexOriginal; //Usa o índice original
+
+            const btnEditar = document.createElement("button");
+            btnEditar.innerText = "Editar"; btnEditar.className = "btn-editar";
+            btnEditar.dataset.index = indexOriginal; //Usa o índice original
+
+            //Cria o botão de copiar
+            const btnCopiar = document.createElement("button");
+            btnCopiar.innerText = "Copiar"; //Você pode usar "📋" se preferir
+            btnCopiar.className = "btn-copiar";
+            btnCopiar.dataset.index = indexOriginal;
+
+            const btnExcluir = document.createElement("button");
+            btnExcluir.innerText = "Excluir"; btnExcluir.className = "btn-excluir";
+            btnExcluir.dataset.index = indexOriginal; //Usa o índice original
+
+            li.appendChild(chkPaga);
+
+            //Adiciona a tag categoria
+            if(conta.categoria) {
+                const spanCategoria = document.createElement("span");
+                spanCategoria.className = "tag-categoria";
+                spanCategoria.dataset.categoria = conta.categoria;
+                spanCategoria.innerText = conta.categoria.charAt(0).toUpperCase() + conta.categoria.slice(1);
+                li.appendChild(spanCategoria);
+            }
+
+            //Formata a data para [DD/MM] e adiciona ao texto
+            let dataFormatada = "";
+            if(conta.data) {
+                const partesData = conta.data.split('-'); //Pega 'YYYY/MM/DD' e quebra
+                dataFormatada = `[${partesData[2]}/${partesData[1]}]`; //Forma para 'DD/MM'
+            }
+            li.append(` ${dataFormatada}${conta.descricao} - R$: ${conta.valor.toFixed(2)} `);
+            li.appendChild(btnCopiar);
+            li.appendChild(btnEditar);
+            li.appendChild(btnExcluir);
+
+            listaContasEl.appendChild(li);
+        });
+    }
+
+    //---Lógica do Resumo de texto e Gráfico---
+
+        let totalGeral = 0;
+        let totalPago = 0;
+        //Agrega gastos por categoria 
+        const gastosPorCategoria = {};
+
+        contasDoMes.forEach(conta => {
+            totalGeral += conta.valor;
+            if (conta.paga) {
+                totalPago += conta.valor;
+            }
+            //Agrega para o gráfico
+            const categoria = conta.categoria || 'outros';
+            if (!gastosPorCategoria[categoria]) {
+            gastosPorCategoria[categoria] = 0;
+        }
+        gastosPorCategoria[categoria] += conta.valor;
+
+        });
+
+        const saldo = salarioDoMes - totalGeral;
+        const corSaldo = saldo >= 0 ? 'green' : 'red'; //Saldo verde se positivo, vermelho se negativo
+        let mensagemFinanceira = { texto: '', cor: '' };//Lógica para calcular o percentual e obter a mensagem
+
+        if(salarioDoMes > 0 && totalGeral > 0) {
+           graficoContainer.style.display = 'block'; //Mostra o container do gráfico
+           const ctx = document.getElementById('graficoResumo').getContext('2d');
+           
+          const labelsDoGrafico = Object.keys(gastosPorCategoria).map(cat => cat.charAt(0).toUpperCase() + cat.slice(1));
+          const dataDoGrafico = Object.values(gastosPorCategoria);
+
+          //Usa o map de cores global. Se a cor não existir, usa a cor de 'outros'.
+          const backgroundColors = Object.keys(gastosPorCategoria).map(cat => CORES_CATEGORIAS[cat] || CORES_CATEGORIAS['outros']);
+
+           graficoAtual = new Chart(ctx, {
+            type: 'doughnut', //tipo de gráfico: rosca
+            data:{
+                labels: labelsDoGrafico, //Labels: ['Moradia', 'Alimentação' etc..]
+                datasets: [{
+                    label: 'Gastos por Categoria',
+                    data: dataDoGrafico, //Data: [500, 300 ...]
+                    backgroundColor: backgroundColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, //Permite que o CSS controle a altura
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context){
+                                const label = context.label || '';
+                                const valor = context.parsed;
+                                const percentual = (valor / totalGeral * 100).toFixed(1);
+                                return `${label}: R$ ${valor.toFixed(2)} (${percentual}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+           });
+
+           //Calcula a mensagem financeira
+           const percentualGasto = (totalGeral / salarioDoMes) * 100;
+           mensagemFinanceira = obterMensagemFinanceira(percentualGasto);
+
+        }else if(salarioDoMes > 0 && totalGeral === 0){
+            graficoContainer.style.display = 'none';
+            mensagemFinanceira = { texto: 'Você não teve nenhum gasto este mês. Parabéns!', cor: 'green' };
+        }else {
+            //Se não tem salário, esconde o gráfico e não calcula o percentual
+            graficoContainer.style.display = 'none';
+            mensagemFinanceira = { texto: 'Insira um salário para ver feedback.', cor: 'blue' };
+        } 
+
+        //Atualiza o resumo de texto
+        resumoContasEl.innerHTML =  `
+        <hr>
+        <p>Salário: <span style="color: blue;">R$ ${salarioDoMes.toFixed(2)}</span></p>
+        <p>Total de Contas: <span style="color: red;">R$ ${totalGeral.toFixed(2)}</span></p>
+        <p><strong>Saldo Final: <span style="color: ${corSaldo};">R$ ${saldo.toFixed(2)}</span></strong></p>
+        <br>
+        <p>Pago do Mês: R$ ${totalPago.toFixed(2)}</p>
+        <p class="mensagem-financeira" style="color: ${ mensagemFinanceira.cor };">${mensagemFinanceira.texto}</p>
+        
+    `;
+    }
+
+    function obterMensagemFinanceira(percentualGasto) {
+    if (isNaN(percentualGasto) || percentualGasto < 0) { return { texto: '', cor: '' }; }
+    if (percentualGasto <= 40) { return { texto: 'Parabéns! Você está gastando bem menos que o seu salário.', cor: 'green' }; }
+    else if (percentualGasto <= 70) { return { texto: 'Seus gastos estão na média. Continue controlando!', cor: 'orange' }; }
+    else { return { texto: 'Cuidado! Seus gastos estão muito altos. Risco de endividamento!', cor: 'red' }; }
+}
+
+    //Função para atualizar a chave do mês selecionado e recarregar a lista
+    function atualizarMesSelecionado(){
+        const mes = selectMes.value;
+        const ano = inputAno.value;
+        mesAtualSelecionado = `${ano}-${mes}`;
+
+    //Carrega o salário salvo para o mês selecionado
+        const salarioSalvo = salarioPorMes[mesAtualSelecionado] || "";
+        inputSalario.value = salarioSalvo;
+
+        renderizarContasDoMes();
+    }
+    //Função para pegar a data de hoje formatada (YYYY/MM/DD)
+    function getHojeFormatado(){
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0'); //+1 porque getMonth() é 0-11
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    }
+
+
+    //Funções para abrir e fechar o modal
+        function abrirModal(index){
+            const contasDoMes = todasAsContas[mesAtualSelecionado] || [];
+            const contaParaEditar = contasDoMes[index];
+            //Preenche os campos do modal com os dados da conta
+            modalIndice.value = index;
+            modalDescricao.value = contaParaEditar.descricao;
+            modalValor.value = contaParaEditar.valor;
+            modalData.value = contaParaEditar.data; //Carrega a data da conta
+            
+        //Verifica se a categoria existe (não é undefined ou null)
+        if(contaParaEditar.categoria !== undefined && contaParaEditar.categoria !== null) {
+            modalCategoria.value = contaParaEditar.categoria; // Usa o valor salvo (que pode ser "" ou "moradia", etc.)
+        }else{
+            modalCategoria.value = 'outros'; //Só usa 'outros' se a propriedade nem existir
+        }
+            modalContainer.classList.remove("modal-escondido");
+            modalDescricao.focus(); //Foca no primeiro campo    
+        }
+        function fecharModal(){
+            modalContainer.classList.add("modal-escondido");
+        }
+        //Funções para o modal de categorias
+        function abrirModalCategorias(){
+            renderizarListaCategorias();
+            modalCategoriasContainer.classList.remove("modal-escondido");
+            inNovaCategoria.focus();
+      }
+      function fecharModalCategorias(){
+        modalCategoriasContainer.classList.add("modal-escondido");
+      }
+
+
+    //Função para popular o seletor de mês e definir o mês/ano atual
+    function inicializarSeletorDeMes() {
+        const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth(); //0-11
+        const anoAtual = hoje.getFullYear();
+
+        meses.forEach((nomeMes, index) =>{
+            const option = document.createElement("option");
+            //O valor será "1", "2", etc.. para facilitar a ordenação
+            option.value = String(index + 1).padStart(2,'0');
+            option.innerText = nomeMes;
+            selectMes.appendChild(option);
+        });
+
+        selectMes.value = String(mesAtual + 1).padStart(2, '0');
+        inputAno.value = anoAtual;
+
+        //Adiciona "escutadores" para atualizar a lista sempre que o mês ou ano mudar
+        selectMes.addEventListener("change", atualizarMesSelecionado);
+        inputAno.addEventListener("change", atualizarMesSelecionado);
+
+    }   
+        //---EVENTOS---
+
+ btnLimparMes.addEventListener("click", () =>{
+            //Pede confirmação
+            const confirmou = confirm("Tem certeza que deseja apagar TODAS as contas deste mês? Esta ação não pode ser desfeita.");
+            if(confirmou){
+                todasAsContas[mesAtualSelecionado] = []; //Esvazia a lista do mês atual
+                salvarDados();
+                renderizarContasDoMes();
+                frm.inDescricao.focus();
+            } 
+        });
+
+     //Evento para cuidar dos cliques nos botões de filtro
+        filtroContainer.addEventListener("click", (e) =>{
+                const target = e.target;
+                if(target.id === 'filtro-todas'){
+                    filtroAtual = 'todas';
+                }else if(target.id === 'filtro-pendentes'){
+                    filtroAtual = 'pendentes';
+                }else if(target.id === 'filtro-pagas'){
+                    filtroAtual = 'pagas';
+                }else{
+                    return;  //Sai se o clique não foi em um botão
+                }
+
+                atualizarBotoesFiltro(); //Atualiza o visual dos botões
+                renderizarContasDoMes(); //Renderiza a lista com o novo filtro
+            });
+
+            //Evento para cuidar da ordenação
+            selectOrdenacao.addEventListener("change", () =>{
+                ordenacaoAtual = selectOrdenacao.value;
+                renderizarContasDoMes(); //Re-renderiza a lista com a nova ordem
+            })
+
+    //Evento para salvar o salário sempre que o valor do campo mudar
+    inputSalario.addEventListener("change", () => {
+        const salario = Number(inputSalario.value);
+        salarioPorMes[mesAtualSelecionado] = salario;
+        salvarDados();
+        renderizarContasDoMes(); //Atualiza o resumo com o novo salário
+    } )
+
+    //"Escuta" o evento de envio do formulário
+    frm.addEventListener("submit", (e) =>{
+        e.preventDefault();  //Evita o comportamento padrão de recarregar a página
+
+        //Obtém os valores dos campos
+        const descricao = frm.inDescricao.value;
+        const valor = Number(frm.inValor.value);
+        const data = frm.inData.value;
+        const categoria = inCategoria.value;
+
+        //Garante que a lista para o mês atual exista
+        if(!todasAsContas[mesAtualSelecionado]){
+            todasAsContas[mesAtualSelecionado] = [];
+        }
+        const contasDoMes = todasAsContas[mesAtualSelecionado];
+ 
+        contasDoMes.push({ descricao, valor, paga: false, data: data, categoria: categoria});
+        
+        renderizarContasDoMes();
+        salvarDados(); 
+        frm.reset();
+        inData.value = getHojeFormatado(); //Redefine a data para hoje
+        frm.inDescricao.focus();
+    });
+    
+
+    //"Escuta" o clique na lista de contas
+    listaContasEl.addEventListener("click", (e) =>{
+        const target = e.target;
+        if(!target.dataset.index) return;  //Se o clique não foi em um elemento com data-index, ignora
+        const index = Number(target.dataset.index);
+        const contasDoMes = todasAsContas[mesAtualSelecionado];
+
+        if(target.classList.contains("btn-excluir")) {
+            const confirmou = confirm(`Tem certeza que deseja excluir a conta "${contasDoMes[index].descricao}"?`);
+            if(confirmou) {
+                contasDoMes.splice(index, 1);
+            }
+            
+        }else if(target.classList.contains("btn-copiar")){
+            //Pega os dados da conta que queremos copiar
+            const contaParaCopiar = contasDoMes[index];
+
+            //Preenche o formulário principal com os dados da conta
+            frm.inDescricao.value = contaParaCopiar.descricao;
+            frm.inValor.value = contaParaCopiar.valor;
+            //Define a data para hoje (ou use contaParaCopiar.data se preferir copiar a data antiga)
+            inData.value =contaParaCopiar.data;
+            inCategoria.value = contaParaCopiar.categoria || ""; //Usa o seletor 'inCategoria'
+
+            //Foca no campo de descrição para o usuário salvar
+            frm.inDescricao.focus();
+
+            //Rola a página para o topo, onde está o formulário
+            frm.scrollIntoView({ behavior: 'smooth' });
+            
+            return; //Sai da função para não salvar/renderizar
+
+        }else if(target.classList.contains("btn-editar")) {
+            //Em vez de mexe no form principal, abre o modal
+            abrirModal(index);
+            return;
+            
+        }else if(target.classList.contains("chk-paga")) {
+            //Lógica para o checkbox
+            //Inverte o valor booleano (true vira false, false vira true)
+            contasDoMes[index].paga = !contasDoMes[index].paga;
+        }else{
+            return; //Se não clicou em um elemento de ação, não faz nada
+        }
+        salvarDados();
+        renderizarContasDoMes();
+    });
+
+    //Evento para o Modal
+    formModal.addEventListener("submit", (e) =>{
+        e.preventDefault();
+
+        //Pega os dados do modal
+        const indexParaSalvar = Number(modalIndice.value);
+        const novaDescricao = modalDescricao.value;
+        const novoValor = Number(modalValor.value);
+        const novaData = modalData.value;
+        const novaCategoria = modalCategoria.value;
+        const contasDoMes = todasAsContas[mesAtualSelecionado];
+
+        //Atualiza a conta no array original
+        contasDoMes[indexParaSalvar].descricao = novaDescricao;
+        contasDoMes[indexParaSalvar].valor = novoValor;
+        contasDoMes[indexParaSalvar].data = novaData;
+        contasDoMes[indexParaSalvar].categoria = novaCategoria;
+
+        salvarDados();
+        renderizarContasDoMes();
+        fecharModal();
+    });
+
+    btnModalCancelar.addEventListener("click", fecharModal);
+        
+    //Lógica para fechar clicando no fundo
+    modalContainer.addEventListener("click", (e) =>{
+        if(e.target.id === "modal-container"){
+            fecharModal();
+        }
+    });
+    //Eventos para o Modal de Categorias
+    btnGerenciarCategorias.addEventListener("click", abrirModalCategorias);
+    btnFecharModalCategorias.addEventListener("click", fecharModalCategorias);
+
+    formAddCategoria.addEventListener("submit", (e) =>{
+        e.preventDefault();
+        const novaCategoria = inNovaCategoria.value.trim().toLowerCase();
+        if(novaCategoria && !appCategorias.includes(novaCategoria)) {
+            appCategorias.push(novaCategoria);
+            salvarCategorias();
+            renderizarListaCategorias();
+        }
+        inNovaCategoria.value = '';
+        inNovaCategoria.focus();
+    });
+    listaCategoriasModal.addEventListener("click", (e) =>{
+        if(e.target.classList.contains("btn-excluir-categoria")){
+            const categoriaParaExcluir = e.target.dataset.categoria;
+            if(categoriaParaExcluir === 'outros') return; //Segurança
+
+            if(confirm(`Tem certeza que quer excluir a categoria "${categoriaParaExcluir}"?`)) {
+            appCategorias = appCategorias.filter(cat => cat !== categoriaParaExcluir);
+            salvarCategorias();
+            renderizarListaCategorias();
+            // Opcional: Atualizar contas existentes que usavam essa categoria para "outros"
+            // (Por enquanto, elas apenas ficarão sem categoria ou com uma categoria "órfã")
+            }
+        }
+    });
+
+    //---LÓGICA DO MODO ESCURO---
+    //Função para aplicar o tema
+    function aplicarTema(escuro){
+        if(escuro){
+            document.body.classList.add("dark-mode");
+            btnTema.innerText = "☀️"; //Muda ícone para Sol
+        }else{
+            document.body.classList.remove("dark-mode");
+            btnTema.innerText = "🌙"; //Muda ícone para Lua
+        }
+    }
+
+    //Verifica preferência salva ao carregar
+    const temaSalvo = localStorage.getItem("temaEscuro") === "sim";
+    aplicarTema(temaSalvo);
+
+    //Evento de clique no botão
+    btnTema.addEventListener("click", () =>{
+    //Altera a classe
+        document.body.classList.toggle("dark-mode");
+
+    //Verifica se ficou escuro
+        const isDark = document.body.classList.contains("dark-mode");
+
+    //Salva a preferência
+        localStorage.setItem("temaEscuro", isDark ? "sim" : "nao");
+
+    //Atualiza o ícone
+    aplicarTema(isDark);
+    });
+
+        //---INICIALIZAÇÃO---
+        inicializarSeletorDeMes();
+        popularDropdownsCategorias(); //Popula os <select> na inicialização
+        atualizarMesSelecionado();  //Carrega as contas do mês atual logo no início
+        atualizarBotoesFiltro(); //Garante que o botão 'todas' comece ativo
+        inData.value = getHojeFormatado(); //Define a data de hoje no formulário principal

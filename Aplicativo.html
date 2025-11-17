@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="Styles/estilos.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <title>Meu primeiro Aplicativo</title>
+</head>
+
+<body>
+  <div class="container">
+    <button id="btnTema" class="btn-tema">🌙</button>
+    <h1>Programa Contas do Mês</h1>
+
+    <div id="seletor-mes">
+      <label for="mes">Mês:</label>
+      <select id="mes"></select>
+      <label for="ano">Ano:</label>
+      <input type="number" id="ano" min="2020" max="2030">
+    </div>
+
+    <div id="campo-salario">
+      <label for="salario">Meu Salário do Mês R$:</label>
+      <input type="number" id="salario" step="0.01" placeholder="Ex: 3500.00">
+    </div>
+    
+    <hr>
+
+    <form id="formContas">
+      <p>
+        <label for="inDescricao">Descrição da Conta:</label>
+        <input type="text" id="inDescricao" required>
+      </p>
+      <p>
+        <label for="inData">Data da Conta:</label>
+        <input type="date" id="inData" required>
+      </p>
+
+      <p>
+        <label for="inCategoria">Categoria:</label>
+        <select id="inCategoria" required>
+          </select>
+      </p>
+
+      <p>
+        <label for="inValor">Valor da Conta R$:</label>
+        <input type="number" min="0" step="0.01" id="inValor" required>
+      </p>
+      <input type="submit" value="Registrar Conta">
+    </form>
+
+    <hr>
+
+    <h2>Contas Registradas</h2>
+
+    <div class="configuracao-container">
+    <div class="ordenacao-container">
+      <label for="ordenacao">Ordenar por:</label>
+      <select id="ordenacao">
+        <option value="data-asc">Data (Mais próximo)</option>
+        <option value="data-desc">Data (Mais distante)</option>
+        <option value="valor-desc">Valor (Maior)</option>
+        <option value="valor-asc">Valor (Menor)</option>
+        <option value="desc-asc">Descrição (A-Z)</option>
+      </select>
+    </div>
+    <button id="btnGerenciarCategorias" class="btn-gerenciar">Gerenciar Categorias</button>
+    </div>
+
+    <div class="filtros-container">
+      <button id="filtro-todas" class="filtro-btn active">Mostrar Todas</button>
+      <button id="filtro-pendentes" class="filtro-btn">Mostrar Pendentes</button>
+      <button id="filtro-pagas" class="filtro-btn">Mostrar Pagas</button>
+    </div>
+
+    <ul id="listaContas"></ul>
+
+    <div id="resumo-container">
+      <div id="grafico-container">
+        <canvas id="graficoResumo"></canvas>
+      </div>
+      <div id="resumoContas">
+      </div>
+    </div>
+    
+    <button id="btnLimparMes" class="btn-limpar">Limpar Contas do Mês</button>
+    
+    <div id="modal-container" class="modal-escondido">
+      <div id="modal-conteudo">
+        <h2>Editar Conta</h2>
+        <form id="formModal">
+          <input type="hidden" id="modalIndice">
+          <p>
+            <label for="modalDescricao">Descrição da Conta:</label>
+            <input type="text" id="modalDescricao" required>
+          </p>
+          <p>
+            <label for="modalData">Data da Conta:</label>
+            <input type="date" id="modalData" required>
+          </p>
+
+          <p>
+            <label for="modalCategoria">Categoria:</label>
+            <select id="modalCategoria" required>
+              </select>
+          </p>
+          <p>
+            <label for="modalValor">Valor da Conta R$:</label>
+            <input type="number" min="0" step="0.01" id="modalValor" required>
+          </p>
+          <div class="modal-botoes">
+            <button type="button" id="btnModalCancelar">Cancelar</button>
+            <button type="submit" id="btnModalSalvar">Salvar Alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="modal-categorias-container" class="modal-escondido">
+      <div id="modal-categorias-conteudo">
+        <h2>Gerenciar Categorias</h2>
+
+        <form id="formAddCategoria">
+          <label for="inNovaCategoria">Nova Categoria:</label>
+          <input type="text" id="inNovaCategoria" placeholder="Ex: Pets, Suplementos etc.." required>
+          <button type="submit">Adicionar</button>
+        </form>
+
+        <ul id="lista-categorias-modal">
+          </ul>
+
+        <button type="button" id="btnFecharModalCategorias">Fechar</button>
+      </div>
+    </div>
+    <script src="Java/Aplicativo.js"></script>
+
+</body>
+</html>
