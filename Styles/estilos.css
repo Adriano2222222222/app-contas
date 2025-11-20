@@ -349,3 +349,84 @@ form input[type="submit"].modo-edicao {
     #grafico-container { max-height: 200px; }
     #resumoContas { text-align: center; }
 }
+/*---BOTÃO COPIAR MÊS---*/
+#btnCopiarMes{
+    margin-left: 15px;
+    padding: 8px 12px;
+    background-color: var(---destaque); /*Usa a cor do tema (azul)*/
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: opacity 0.2s;
+}
+#btnCopiarMes:hover{
+    opacity: 0.8;
+}
+/*Ajuste para telas pequenas*/
+@media (max-width: 600px){
+    #seletor-mes{
+        flex-wrap: wrap; /*Permite que o botão vá para a linha de baixo se faltar espaço*/
+    }
+}
+/*---CORREÇÃO DE BUGS(Botões de Categoria)---*/
+/*Força o botão de excluir categoria a ser VERMELHO com texto BRANCO*/
+.btn-excluir-categoria{
+    background-color: #dc3545 !important; /*Vermelho*/
+    color: white !important; /*Texto Branco*/
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.btn-excluir-categoria:hover{
+    opacity: 0.8;
+}
+/*Força o botão desabilitado ("Outros") a ser CINZA*/
+.btn-excluir-categoria:disabled{
+    background-color: #6c757d !important;
+    color: white !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+/*Garante que o texto da lista de categorias seja legível no Modo Escuro*/
+#lista-categorias-modal li{
+    color: var(---texto-principal); /*Usa a variável que muda de cor (preto/branco)*/
+    border-bottom: 1px solid var(--borda-suave); /*Garante que a linha divisória apareça*/
+}
+/*---AJUSTE PARA CELULAR---*/
+@media (max-width: 600px){
+    /*Ajuste o container para dar espaço ao botão de tema*/
+    .container{
+        padding-top: 60px; /*Mais espaço no topo*/
+        position: relative;
+    }
+
+    /*Posiciona o botão de tema bem no topo direito*/
+    .btn-tema{
+        top: 10px;
+        right: 10px;
+        font-size: 1.8em; /*ícone maior para facilitar o toque*/
+        z-index: 100; /*Garante que fique por cima de tudo*/
+        padding: 10px; /*Aumenta a área de toque*/
+    }
+
+    /*Ajusta o título para não bater no botão*/
+    h1{
+        font-size: 1.5em;
+        margin-top: 0;
+    }
+
+    /*Garante que os botões de filtro não fiquem espremidos*/
+    .filtros-container{
+        flex-wrap: wrap;
+    }
+    .filtro-btn{
+        flex-grow: 1;
+        min-width: 30%; /*Garante tamanho mínimo*/
+    }
+}
+
