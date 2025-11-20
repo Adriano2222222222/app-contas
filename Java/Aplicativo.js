@@ -28,6 +28,7 @@ const formAddCategoria = document.querySelector("#formAddCategoria");
 const inNovaCategoria = document.querySelector("#inNovaCategoria");
 const listaCategoriasModal = document.querySelector("#lista-categorias-modal");
 const btnTema = document.querySelector("#btnTema");
+const btnCopiarMes = document.querySelector("#btnCopiarMes");
 
     //---ESTADO DO APLICATIVO---
     //Estrututa para armazenar todas as contas, separadas por mês (ex: {"2025-10": [{...}, {...}]})
@@ -415,6 +416,75 @@ const btnTema = document.querySelector("#btnTema");
 
     }   
         //---EVENTOS---
+
+        //Lógica para copiar contas para o próximo mês
+        btnCopiarMes.addEventListener("click", () =>{
+            const contasAtuais = todasAsContas[mesAtualSelecionado] || [];
+
+            //1.Verifica se tem algo para copiar
+            if(contasAtuais.length === 0){
+                alert("Não há contas neste mês para copiar.");
+                return;
+            }
+
+            //2.Calcula qual é o próximo mês e ano
+            const [anoStr, mesStr] = mesAtualSelecionado.split('-');
+            let anoAtualNum = parseInt(anoStr);
+            let mesAtualNum = parseInt(mesStr);
+            let proxMesNum = mesAtualNum + 1;
+            let proxAnoNum = anoAtualNum;
+
+            //Se passou de Dezembro (12), vira Janeiro (1) do próximo ano
+            if(proxMesNum > 12){
+                proxMesNum = 1;
+                proxAnoNum++;
+            }
+
+            //Formata para string (ex: "01", "02")
+            const proxMesStr = String(proxMesNum).padStart(2, '0');
+            const chaveProxMes = `${proxAnoNum}-${proxMesStr}`;
+
+            //3.Verifica se já existem contas no destino para evitar duplicatas acidentais
+            if(todasAsContas[chaveProxMes] && todasAsContas[chaveProxMes].length > 0){
+                const confirmar = confirm(`O mês de ${proxMesStr}/${proxAnoNum} já possui contas registradas. Deseja adicionar as cópias mesmo assim?`);
+                if(!confirmar) return;
+            }
+
+            //4.Cria as cópias
+            const novasContas = contasAtuais.map(conta =>{
+                //Tenta ajustar a data para o novo mês
+                let novaData = "";
+                if(conta.data){
+                //A data vem com YYYY-MM-DD. Pegamos só o dia (parte final)
+                const dia = conta.data.split('-')[2];
+                novaData = `${proxAnoNum}-${proxMesStr}-${dia}`;
+                }
+
+                return{
+                    descricao: conta.descricao,
+                    valor: conta.valor,
+                    categoria: conta.categoria,
+                    paga: false, //Importante: A cópia nasce como "não paga"
+                    data: novaData
+                };
+            });
+
+            //5.Salva no novo mês
+            if(!todasAsContas[chaveProxMes]){
+                todasAsContas[chaveProxMes] = [];
+            }
+            //Adiciona as novas contas à lista existente (usando spread operator...)
+            todasAsContas[chaveProxMes].push(...novasContas);
+
+            salvarDados();
+
+            //6.Pergunta se quer ir para o novo mês
+            if(confirm(`Sucesso! ${novasContas.length} contas copiadas para ${proxMesStr}/${proxAnoNum}. Deseja ir para lá agora?`)){
+                selectMes.value = proxMesStr;
+                inputAno.value = proxAnoNum;
+                atualizarMesSelecionado();
+            }
+        });
 
  btnLimparMes.addEventListener("click", () =>{
             //Pede confirmação
