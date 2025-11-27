@@ -1,4 +1,4 @@
-const CACHE_NAME = 'financas-v1';
+const CACHE_NAME = 'financas-v2';
 const ASSETS_TO_CACHE = [
     './Aplicativo.html',
     './Styles/estilos.css',
@@ -23,4 +23,5 @@ self.addEventListener('fetch', (e) =>{
             return response || fetch(e.request);
         })
     );
+
 });
