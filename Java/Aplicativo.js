@@ -29,24 +29,27 @@ const inNovaCategoria = document.querySelector("#inNovaCategoria");
 const listaCategoriasModal = document.querySelector("#lista-categorias-modal");
 const btnTema = document.querySelector("#btnTema");
 const btnCopiarMes = document.querySelector("#btnCopiarMes");
+const inCorCategoria = document.querySelector("#inCorCategoria");
+const btnExportar = document.querySelector("#btnExportar");
+
 
     //---ESTADO DO APLICATIVO---
     //Estrututa para armazenar todas as contas, separadas por mês (ex: {"2025-10": [{...}, {...}]})
     let todasAsContas = JSON.parse(localStorage.getItem("todasAsContas")) || {};
     let salarioPorMes = JSON.parse(localStorage.getItem("salarioPorMes")) || {};
 
-    //Lógica de Categorias Dinâmicas
-    const defaultCategorias = ['moradia', 'alimentacao', 'transporte', 'lazer', 'saude', 'outros'];
-    let appCategorias = JSON.parse(localStorage.getItem("appCategorias")) || defaultCategorias;
-    //Mapa de cores (permanece o mesmo, mas agora é global)
-    const CORES_CATEGORIAS ={
-        'moradia' : 'rgba(23, 162, 184, 0.8)',
-        'alimentacao' : 'rgba(40, 167, 69, 0.8)',
-        'transporte' : 'rgba(255, 193, 7, 0.8)',
-        'lazer' : 'rgba(253, 126, 20, 0.8)',
-        'saude' : 'rgba(220, 53, 69, 0.8)',
-        'outros' : 'rgba(108, 117, 125, 0.8)'
-    };
+   // Lógica de Categorias Dinâmicas (COM CORES)
+    const defaultCategorias = [
+     { nome: 'moradia', cor: '#17a2b8' },
+     { nome: 'alimentacao', cor: '#28a745' },
+     { nome: 'transporte', cor: '#ffc107' },
+     { nome: 'lazer', cor: '#fd7e14' },
+     { nome: 'saude', cor: '#dc3545' },
+     { nome: 'outros', cor: '#6c757d' }
+];
+
+    //Carrega categorias. Se estiver no formato antigo (strings), converte para objetos
+    let appCategorias = carregarCategoriasComMigracao();
 
     let mesAtualSelecionado = '';
     let filtroAtual = 'todas';
@@ -54,6 +57,51 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
     let graficoAtual = null; //Variável para guardar a instância do gráfico
 
         //---FUNÇÕES---
+
+    //Função para exibir nitificações bonitas (Toasts)
+    function mostrarNotificacao(texto, tipo = 'sucesso'){
+        let corFundo;
+
+        if(tipo === 'sucesso'){
+            corFundo = "linear-gradient(to right, #00b09b, #96c93d)"; //Verde degradê
+        }else if(tipo === 'erro'){
+            corFundo = "linear-gradient(to right, #ff5f6d, #ffc371)"; //Vermelho degradê
+        }else if(tipo === 'aviso'){
+            corFundo = "linear-gradient(to right, #f8b500, #fceabb)"; //Amarelo
+        }
+
+        Toastify({
+            text: texto,
+            duration: 3000, //3 segundos
+            close: true,
+            gravity: "top", //'top' ou 'bottom'
+            position: "right", //'left', 'center' ou 'right'
+            stopOnFocus: true, //Para o tempo se passar o mouse
+            style: {
+                background: corFundo,
+                borderRadius: "8px",
+                fontWeight: "bold"
+            },
+        }).showToast();
+    }
+
+    //Função especial para migrar dados antigos para o novo formato com cores
+    function carregarCategoriasComMigracao(){
+        const saved = JSON.parse(localStorage.getItem("appCategorias"));
+        if(!saved) return defaultCategorias;
+
+        //Verifica se o primeiro item é uma string (formato antigo)
+        if(typeof saved[0] === 'string'){
+        //Converte lista de strings para lista de objetos
+            const novasCategorias = saved.map(catNome =>{
+                //Tenta achar a cor no defalt, se não achar, usa cinza
+                const def = defaultCategorias.find(d => d.nome === catNome);
+                return { nome: catNome, cor: def ? def.cor : '#6c757d' };
+            });
+            return novasCategorias;
+        }
+        return saved; //Já está no formato novo (objetos)
+    }
 
     function salvarDados(){
         localStorage.setItem("todasAsContas", JSON.stringify(todasAsContas));
@@ -64,6 +112,14 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
         localStorage.setItem("appCategorias", JSON.stringify(appCategorias));
         popularDropdownsCategorias();//Atualiza os <select>
    }
+
+   function getHojeFormatado() {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+}
    //Preenche os <select> #inCategoria e #modalCategoria
    function popularDropdownsCategorias(){
     //Limpa os dropdowns
@@ -77,8 +133,9 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
 
     //Adiciona as categorias salvas
     appCategorias.forEach(cat =>{
-        const catCapitalizada = cat.charAt(0).toUpperCase() + cat.slice(1);
-        const optionHTML = `<option value="${cat}">${catCapitalizada}</option>`;
+        const catNome = cat.nome; //Agora acessamos .nome
+        const catCapitalizada = catNome.charAt(0).toUpperCase() + catNome.slice(1);
+        const optionHTML = `<option value="${catNome}">${catCapitalizada}</option>`;
         inCategoria.innerHTML += optionHTML;
         modalCategoria.innerHTML += optionHTML;
    }); 
@@ -89,16 +146,25 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
         listaCategoriasModal.innerHTML = '';
         appCategorias.forEach(cat => {
             //Não permite excluir a categoria "outros"
-            const desabilitado = (cat === 'outros') ? 'disabled' : '';
-            const catCapitalizada = cat.charAt(0).toUpperCase() + cat.slice(1);
+            const desabilitado = (cat.nome === 'outros') ? 'disabled' : '';
+            const catCapitalizada = cat.nome.charAt(0).toUpperCase() + cat.nome.slice(1);
 
             listaCategoriasModal.innerHTML += `
             <li>
+            <div style="display:flex; align-items:center;">
+                <span class="cor-preview" style:"background-color: ${cat.cor};"></span>
                 <span>${catCapitalizada}</span>
+            </div>
                 <button class="btn-excluir-categoria" data-categoria="${cat}" ${desabilitado}>Excluir</button>
             </li>
             `;
         });
+    }
+
+    //Função auxiliar para pegar a cor de uma categoria
+    function getCorCategoria(nomeCategoria){
+        const catEncontrada = appCategorias.find(c => c.nome === nomeCategoria);
+        return catEncontrada ? catEncontrada.cor : '#6c757d'; //Retorna a cor ou cinza
     }
 
     //Função para atualizar a classe 'active' nos botões de filtro
@@ -213,12 +279,16 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
 
             li.appendChild(chkPaga);
 
-            //Adiciona a tag categoria
+            //Adiciona a tag categoria com a cor dinâmica
             if(conta.categoria) {
                 const spanCategoria = document.createElement("span");
                 spanCategoria.className = "tag-categoria";
                 spanCategoria.dataset.categoria = conta.categoria;
                 spanCategoria.innerText = conta.categoria.charAt(0).toUpperCase() + conta.categoria.slice(1);
+
+                //Pega a cor direto do objeto da categoria
+                const corDaCategoria = getCorCategoria(conta.categoria);
+                spanCategoria.style.backgroundColor = corDaCategoria;
                 li.appendChild(spanCategoria);
             }
 
@@ -269,8 +339,8 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
           const labelsDoGrafico = Object.keys(gastosPorCategoria).map(cat => cat.charAt(0).toUpperCase() + cat.slice(1));
           const dataDoGrafico = Object.values(gastosPorCategoria);
 
-          //Usa o map de cores global. Se a cor não existir, usa a cor de 'outros'.
-          const backgroundColors = Object.keys(gastosPorCategoria).map(cat => CORES_CATEGORIAS[cat] || CORES_CATEGORIAS['outros']);
+          //Pega as cores dinâmicas
+          const backgroundColors = Object.keys(gastosPorCategoria).map(cat =>  getCorCategoria(cat));
 
            graficoAtual = new Chart(ctx, {
             type: 'doughnut', //tipo de gráfico: rosca
@@ -423,7 +493,7 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
 
             //1.Verifica se tem algo para copiar
             if(contasAtuais.length === 0){
-                alert("Não há contas neste mês para copiar.");
+                mostrarNotificacao("Não há contas neste mês para copiar.", "aviso");
                 return;
             }
 
@@ -478,6 +548,8 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
 
             salvarDados();
 
+            mostrarNotificacao("Contas copiadas para o próximo mês!", "sucesso");
+
             //6.Pergunta se quer ir para o novo mês
             if(confirm(`Sucesso! ${novasContas.length} contas copiadas para ${proxMesStr}/${proxAnoNum}. Deseja ir para lá agora?`)){
                 selectMes.value = proxMesStr;
@@ -493,6 +565,7 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
                 todasAsContas[mesAtualSelecionado] = []; //Esvazia a lista do mês atual
                 salvarDados();
                 renderizarContasDoMes();
+                mostrarNotificacao("Todas as contas foram removidas.", "aviso"); //Notificação
                 frm.inDescricao.focus();
             } 
         });
@@ -526,6 +599,7 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
         salarioPorMes[mesAtualSelecionado] = salario;
         salvarDados();
         renderizarContasDoMes(); //Atualiza o resumo com o novo salário
+        mostrarNotificacao("Salário atualizado!", "sucesso");
     } )
 
     //"Escuta" o evento de envio do formulário
@@ -551,6 +625,8 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
         frm.reset();
         inData.value = getHojeFormatado(); //Redefine a data para hoje
         frm.inDescricao.focus();
+
+        mostrarNotificacao("Conta registrada com sucesso!", "sucesso");
     });
     
 
@@ -565,6 +641,9 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
             const confirmou = confirm(`Tem certeza que deseja excluir a conta "${contasDoMes[index].descricao}"?`);
             if(confirmou) {
                 contasDoMes.splice(index, 1);
+                salvarDados();
+                renderizarContasDoMes();
+                mostrarNotificacao("Conta excluída.", "erro"); //Notificação de erro
             }
             
         }else if(target.classList.contains("btn-copiar")){
@@ -584,6 +663,8 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
             //Rola a página para o topo, onde está o formulário
             frm.scrollIntoView({ behavior: 'smooth' });
             
+            mostrarNotificacao("Dados copiados para o formulário!", "aviso");
+
             return; //Sai da função para não salvar/renderizar
 
         }else if(target.classList.contains("btn-editar")) {
@@ -595,11 +676,11 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
             //Lógica para o checkbox
             //Inverte o valor booleano (true vira false, false vira true)
             contasDoMes[index].paga = !contasDoMes[index].paga;
+            salvarDados();
+            renderizarContasDoMes();
         }else{
             return; //Se não clicou em um elemento de ação, não faz nada
         }
-        salvarDados();
-        renderizarContasDoMes();
     });
 
     //Evento para o Modal
@@ -623,6 +704,7 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
         salvarDados();
         renderizarContasDoMes();
         fecharModal();
+        mostrarNotificacao("Conta atualizada com sucesso!", "sucesso");
     });
 
     btnModalCancelar.addEventListener("click", fecharModal);
@@ -639,15 +721,26 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
 
     formAddCategoria.addEventListener("submit", (e) =>{
         e.preventDefault();
-        const novaCategoria = inNovaCategoria.value.trim().toLowerCase();
-        if(novaCategoria && !appCategorias.includes(novaCategoria)) {
-            appCategorias.push(novaCategoria);
-            salvarCategorias();
-            renderizarListaCategorias();
+        const novaCategoriaNome = inNovaCategoria.value.trim().toLowerCase();
+        const novaCategoriaCor = inCorCategoria.value; //Pega a cor
+
+        if(novaCategoriaNome){
+            //Verifica se já existe (pelo nome)
+            const existe = appCategorias.some(c => c.nome === novaCategoriaNome);
+
+            if(!existe){
+                appCategorias.push({ nome: novaCategoriaNome, cor: novaCategoriaCor });
+                salvarCategorias();
+                renderizarListaCategorias();
+                mostrarNotificacao("Categoria criada!", "sucesso");
+            }else{
+                mostrarNotificacao("Essa categoria já existe!", "erro");
+            }
         }
         inNovaCategoria.value = '';
         inNovaCategoria.focus();
     });
+
     listaCategoriasModal.addEventListener("click", (e) =>{
         if(e.target.classList.contains("btn-excluir-categoria")){
             const categoriaParaExcluir = e.target.dataset.categoria;
@@ -657,6 +750,7 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
             appCategorias = appCategorias.filter(cat => cat !== categoriaParaExcluir);
             salvarCategorias();
             renderizarListaCategorias();
+            mostrarNotificacao("Categoria removida.", "aviso");
             // Opcional: Atualizar contas existentes que usavam essa categoria para "outros"
             // (Por enquanto, elas apenas ficarão sem categoria ou com uma categoria "órfã")
             }
@@ -693,6 +787,57 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
     //Atualiza o ícone
     aplicarTema(isDark);
     });
+
+    //---EXPORTAR PARA EXCEL (CSV)---
+    if(btnExportar){
+        btnExportar.addEventListener("click", () =>{
+            const contas = todasAsContas[mesAtualSelecionado] || [];
+
+            if(contas.length === 0){
+                mostrarNotificacao("Não há dados neste mês para exportar.", "aviso");
+                return;
+            }
+            //1.Cria o Cabeçalho do CSV
+            let csvContent = "Descrição,Categoria,Data,Valor,Status\n";
+
+            //2.Adiciona as linhas
+            contas.forEach(conta =>{
+            //Formata os dados para ficarem bonitos no Excel
+                const descricao = `"${conta.descricao}"`; //Aspas para evitar erro se tiver vírgula no texto
+                const categoria = conta.categoria ? conta.categoria.charAt(0).toUpperCase() + conta.categoria.slice(1) : "Outros";
+
+            //Formata Data (de YYYY/MM/DD PARA DD/MM/YYYY)
+            let dataFormatada = "";
+            if(conta.data){
+                const [ano, mes, dia] = conta.data.split('-');
+                dataFormatada = `${dia}/${mes}/${ano}`;
+            }
+            //Formata Valor (troca ponto por vírgula para Excel brasileiro)
+            const valorFormatado = conta.valor.toFixed(2).replace('.', ',');
+
+            const status = conta.paga ? "Paga" : "Pendente";
+
+            //Monta a linha
+            csvContent += `${descricao},${categoria},${dataFormatada},"${valorFormatado}",${status}\n`;
+
+            });
+            //3.Cria o arquivo para download
+            //O "\uFEFF" é um truque para o Excel entender acentos (UTF-8 com BOM)
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            //4.Cria um link invisível e clica nele
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Contas_${mesAtualSelecionado}.csv`);
+            link.style.visibiity = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            mostrarNotificacao("Relatório Excel baixado com sucesso!", "sucesso");
+        });
+    }
 
         //---INICIALIZAÇÃO---
         inicializarSeletorDeMes();
