@@ -8,7 +8,8 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="Styles/estilos.css?v=2">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <link rel="stylesheet" href="Styles/estilos.css?v=5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -103,7 +104,11 @@
       </div>
     </div>
     
-    <button id="btnLimparMes" class="btn-limpar">Limpar Contas do Mês</button>
+    <div class="acoes-rodape">
+      <button id="btnExportar" class="btn-exportar">📊 Baixar Relatório (Excel)</button>
+      <button id="btnLimparMes" class="btn-limpar">🗑️ Limpar Contas do Mês</button>
+    </div>
+    
     
     <div id="modal-container" class="modal-escondido">
       <div id="modal-conteudo">
@@ -160,7 +165,9 @@
         <button type="button" id="btnFecharModalCategorias">Fechar</button>
       </div>
     </div>
-    <script src="Java/Aplicativo.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="Java/Aplicativo.js?v=5"></script>
 
 </body>
 </html>
