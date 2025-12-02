@@ -429,4 +429,75 @@ form input[type="submit"].modo-edicao {
         min-width: 30%; /*Garante tamanho mínimo*/
     }
 }
-
+/*---ATUALIZAÇÃO MODAL CATEGORIAS---*/
+#formAddCategoria{
+    display: flex;
+    align-items: flex-end; /*Alinha o botão com a base dos inputs*/
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.grupo-input{
+    display: flex;
+    flex-direction: column;
+}
+.grupo-input label{
+    font-size: 0.8em;
+    margin-bottom: 3px;
+}
+#inCorCategoria{
+    height: 38px; /*Altura para combinar com o input de texto*/
+    width: 50px;
+    padding: 0;
+    border: 1px solid var(--borda);
+    background: none;
+    cursor: pointer;
+}
+/*Bolinha de cor na lista do modal*/
+.cor-preview{
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+/*---CORREÇÃO TOASTIFY (NOTIFICAÇÕES)---*/
+.toastify{
+    z-index: 9999 !important; /*Garante que fique na frente de todos os modais*/
+    font-family: 'Roboto', sans-serif; /*Usa a mesma fonte do app*/
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2); /*Sombra para destaque*/
+}
+/*---AÇÕES DO RODAPÉ (EXPORTAR E LIMPAR)---*/
+.acoes-rodape{
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+.acoes-rodape button{
+    flex: 1; /*Faz os botões ocuparem o mesmo espaço*/
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity 0.2s;
+}
+.acoes-rodape button:hover{
+    opacity: 0.9;
+}
+/*Botão Exportar (Verde Excel)*/
+.btn-exportar{
+    background-color: #217346;
+    color: white;
+}
+/*O botão limpar já tem estilo, mas garantimos aqui*/
+.btn-limpar{
+    margin-top: 0; /*Remove a margem antiga*/
+}
+/*Ajuste para celular: um embaixo do outro */
+@media (max-width: 600px){
+    .acoes-rodape{
+        flex-direction: column;
+    }
+}
