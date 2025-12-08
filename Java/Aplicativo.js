@@ -31,7 +31,7 @@ const btnTema = document.querySelector("#btnTema");
 const btnCopiarMes = document.querySelector("#btnCopiarMes");
 const inCorCategoria = document.querySelector("#inCorCategoria");
 const btnExportar = document.querySelector("#btnExportar");
-
+const listaMetasEl = document.querySelector("#lista-metas");
 
     //---ESTADO DO APLICATIVO---
     //Estrututa para armazenar todas as contas, separadas por mês (ex: {"2025-10": [{...}, {...}]})
@@ -90,15 +90,17 @@ const btnExportar = document.querySelector("#btnExportar");
         const saved = JSON.parse(localStorage.getItem("appCategorias"));
         if(!saved) return defaultCategorias;
 
-        //Verifica se o primeiro item é uma string (formato antigo)
+        //Verifica se o primeiro item é uma string (formato v1)
         if(typeof saved[0] === 'string'){
-        //Converte lista de strings para lista de objetos
-            const novasCategorias = saved.map(catNome =>{
+            return saved.map(catNome =>{
                 //Tenta achar a cor no defalt, se não achar, usa cinza
                 const def = defaultCategorias.find(d => d.nome === catNome);
-                return { nome: catNome, cor: def ? def.cor : '#6c757d' };
+                return { nome: catNome, cor: def ? def.cor : '#6c757d', meta: 0 };
             });
-            return novasCategorias;
+        }
+        //Se for objeto mas sem meta (formato v2), adiciona meta
+        if(saved[0] && typeof saved[0] === 'object' && saved[0].meta === undefined){
+            return saved.map(cat =>({ ...cat, meta: 0 }));
         }
         return saved; //Já está no formato novo (objetos)
     }
@@ -111,6 +113,7 @@ const btnExportar = document.querySelector("#btnExportar");
     function salvarCategorias(){
         localStorage.setItem("appCategorias", JSON.stringify(appCategorias));
         popularDropdownsCategorias();//Atualiza os <select>
+        renderizarContasDoMes(); //Atualiza as barras de meta também
    }
 
    function getHojeFormatado() {
@@ -142,18 +145,21 @@ const btnExportar = document.querySelector("#btnExportar");
  }
 
     //Renderiza a lista de categorias dentro do modal de gerenciamento
+    //Agora mostra um input para editar a meta na lista
     function renderizarListaCategorias(){
         listaCategoriasModal.innerHTML = '';
-        appCategorias.forEach(cat => {
+        appCategorias.forEach((cat, index) => {
             //Não permite excluir a categoria "outros"
             const desabilitado = (cat.nome === 'outros') ? 'disabled' : '';
             const catCapitalizada = cat.nome.charAt(0).toUpperCase() + cat.nome.slice(1);
+            const metaValor = cat.meta || 0;
 
             listaCategoriasModal.innerHTML += `
             <li>
-            <div style="display:flex; align-items:center;">
+            <div style="display:flex; align-items:center; gap: 10px;">
                 <span class="cor-preview" style:"background-color: ${cat.cor};"></span>
-                <span>${catCapitalizada}</span>
+                <span stype="min-width: 80px;">${catCapitalizada}</span>
+                <input type="number" class="input-meta-lista" data-index="${index}" value="${metaValor}" placeholder="Meta">
             </div>
                 <button class="btn-excluir-categoria" data-categoria="${cat}" ${desabilitado}>Excluir</button>
             </li>
@@ -165,6 +171,11 @@ const btnExportar = document.querySelector("#btnExportar");
     function getCorCategoria(nomeCategoria){
         const catEncontrada = appCategorias.find(c => c.nome === nomeCategoria);
         return catEncontrada ? catEncontrada.cor : '#6c757d'; //Retorna a cor ou cinza
+    }
+    //Função auxiliar para pegar a meta
+    function getMetaCategoria(nomeCategoria){
+        const catEncontrada = appCategorias.find(c => c.nome === nomeCategoria);
+        return catEncontrada ? (catEncontrada.meta || 0) : 0;
     }
 
     //Função para atualizar a classe 'active' nos botões de filtro
@@ -188,6 +199,58 @@ const btnExportar = document.querySelector("#btnExportar");
         }else{
             return{texto: 'Cuidado! Seus gastos estão muito altos. Risco de endividamento!', cor: 'red' };
         }
+    }
+    //Função para renderizar as barras de meta
+    function renderizarMetas(gastosPorCategoria){
+        if(!listaMetasEl) return;
+        listaMetasEl.innerHTML = "";
+
+        //Filtra apenas categorias que têm meta definida (> 0) ou que têm gastos
+        const categoriasParaMostrar = appCategorias.filter(cat => cat.meta > 0 || (gastosPorCategoria[cat.nome] && gastosPorCategoria[cat.nome] > 0));
+
+        if(categoriasParaMostrar.length === 0){
+            listaMetasEl.innerHTML = "<p style='font-size:0.9em; color:#888;'>Defina metas em 'Gerenciar Categorias' para ver o progresso.</p>";
+            return;
+        }
+
+    categoriasParaMostrar.forEach(cat =>{
+        const gasto = gastosPorCategoria[cat.nome] || 0;
+        const meta = cat.meta || 0;
+        const nomeCap = cat.nome.charAt(0).toUpperCase() + cat.nome.slice(1);
+
+        let percentual = 0;
+        let corBarra = "#28a745";
+
+        if(meta > 0){
+            percentual = (gasto / meta) * 100;
+            if(percentual > 100) percentual = 100; //Trava a barra em 100% visualmente
+
+            //Lógica das cores
+            if(gasto >= meta){
+                corBarra = "#dc3545";
+            }else if(gasto >= meta * 0.75){
+                corBarra = "#ffc107";
+            }
+        }else{
+            //Se não tem meta mas tem gasto, mostra barra cinza cheio ou só texto
+            percentual = 0;
+        }
+        const textoInfo = meta > 0
+        ?`${nomeCap}: R$ ${gasto.toFixed(2)} de R$ ${meta.toFixed(2)}`
+        :`${nomeCap}: R$ ${gasto.toFixed(2)} (Sem meta)`;
+
+    listaMetasEl.innerHTML +=`
+        <div class="item-meta">
+            <div class="info-meta">
+                <span>${textoInfo}</span>
+                <span>${meta > 0 ? Math.round((gasto/meta)*100) + '%' : ''}</span>
+            </div>
+            <div class="barra-fundo">
+                <div class="barra-progresso" style="width: ${percentual}%; background-color: ${corBarra};"></div>
+            </div>
+        </div>
+    `;
+    });
     }
 
     //Função para renderizar (exibir) as contas na tela(agora tamber desenha o gráfico)
@@ -327,6 +390,7 @@ const btnExportar = document.querySelector("#btnExportar");
         gastosPorCategoria[categoria] += conta.valor;
 
         });
+        renderizarMetas(gastosPorCategoria);
 
         const saldo = salarioDoMes - totalGeral;
         const corSaldo = saldo >= 0 ? 'green' : 'red'; //Saldo verde se positivo, vermelho se negativo
@@ -723,13 +787,14 @@ const btnExportar = document.querySelector("#btnExportar");
         e.preventDefault();
         const novaCategoriaNome = inNovaCategoria.value.trim().toLowerCase();
         const novaCategoriaCor = inCorCategoria.value; //Pega a cor
+        const novaCategoriaMeta = Number(inMetaCategoria.value); //Pega a meta
 
         if(novaCategoriaNome){
             //Verifica se já existe (pelo nome)
             const existe = appCategorias.some(c => c.nome === novaCategoriaNome);
 
             if(!existe){
-                appCategorias.push({ nome: novaCategoriaNome, cor: novaCategoriaCor });
+                appCategorias.push({ nome: novaCategoriaNome, cor: novaCategoriaCor, meta: novaCategoriaMeta });
                 salvarCategorias();
                 renderizarListaCategorias();
                 mostrarNotificacao("Categoria criada!", "sucesso");
@@ -738,7 +803,21 @@ const btnExportar = document.querySelector("#btnExportar");
             }
         }
         inNovaCategoria.value = '';
+        inMetaCategoria.value = '';
         inNovaCategoria.focus();
+    });
+    //Evento para salvar alterações de meta direto na lista
+    listaCategoriasModal.addEventListener("change", (e) =>{
+        if(e.target.classList.contains("input-meta-lista")){
+            const index = e.target.dataset.index;
+            const novaMeta = Number(e.target.value);
+
+            if(appCategorias[index]){
+                appCategorias[index].meta = novaMeta;
+                salvarCategorias(); //Salva e atualiza tudo
+                mostrarNotificacao("Meta atualizada!", "sucesso");
+            }
+        }
     });
 
     listaCategoriasModal.addEventListener("click", (e) =>{
