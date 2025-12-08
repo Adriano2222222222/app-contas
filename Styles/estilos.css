@@ -501,3 +501,55 @@ form input[type="submit"].modo-edicao {
         flex-direction: column;
     }
 }
+/*---METAS DE GASTOS(NOVO)---*/
+#container-metas{
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid var(---borda-suave);
+}
+#container-metas h3{
+    text-align: left;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    color: var(--texto-principal);
+}
+.item-meta{
+    margin-bottom: 15px;
+}
+.info-meta{
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    color: var(--texto-principal);
+}
+.barra-fundo{
+    width: 100%;
+    height: 10px;
+    background-color: var(--borda-suave);
+    border-radius: 5px;
+    overflow: hidden; /*Corta o que passar*/
+}
+.barra-progresso{
+    height: 100%;
+    width: 0%; /*Começa zerado*/
+    background-color: #28a745;
+    border-radius: 5px;
+    transition: width 0.5s ease-in-out, background-color 0.3s;
+}
+/*Ajuste no Modal para caber o novo input*/
+#formAddCategoria{
+    align-items: flex-end;
+    flex-wrap: wrap; /*Permite quebrar linha se precisar*/
+}
+#inMetaCategoria{
+    width: 80px; /*Tamanho do campo de valor*/
+}
+/*Input de meta dentro da lista de categorias (para editar depois)*/
+.input-meta-lista{
+    width: 70px;
+    padding: 5px;
+    margin-right: 10px;
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+}
