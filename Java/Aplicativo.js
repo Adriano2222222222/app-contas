@@ -32,6 +32,7 @@ const btnCopiarMes = document.querySelector("#btnCopiarMes");
 const inCorCategoria = document.querySelector("#inCorCategoria");
 const btnExportar = document.querySelector("#btnExportar");
 const listaMetasEl = document.querySelector("#lista-metas");
+const inBusca = document.querySelector("#inBusca");
 
     //---ESTADO DO APLICATIVO---
     //Estrututa para armazenar todas as contas, separadas por mês (ex: {"2025-10": [{...}, {...}]})
@@ -271,7 +272,19 @@ const listaMetasEl = document.querySelector("#lista-metas");
         }else if(filtroAtual === 'pagas'){
             contasFiltradas = contasDoMes.filter(conta => conta.paga);
         }else{
-            contasFiltradas = contasDoMes; //'todas'
+            contasFiltradas = [...contasDoMes]; //'todas'
+        }
+        //Filtra por busca (se tiver algo digitado)
+        let termoBusca = "";
+        //Só tenta ler o valor se o elemento inbusca realmente existir na tela
+        if(inBusca){
+            termoBusca = inBusca.value.toLowerCase();
+        }
+        if(termoBusca){
+            contasFiltradas = contasFiltradas.filter(conta =>
+                conta.descricao.toLowerCase().includes(termoBusca) ||
+                (conta.categoria && conta.categoria.toLowerCase().includes(termoBusca))
+            );
         }
 
         //Lógica de Ordenação
@@ -916,8 +929,13 @@ const listaMetasEl = document.querySelector("#lista-metas");
 
             mostrarNotificacao("Relatório Excel baixado com sucesso!", "sucesso");
         });
+    //Evento de digitação na busca
+        if(inBusca){
+            inBusca.addEventListener("input", () =>{
+                renderizarContasDoMes();
+            });
+        }
     }
-
         //---INICIALIZAÇÃO---
         inicializarSeletorDeMes();
         popularDropdownsCategorias(); //Popula os <select> na inicialização
