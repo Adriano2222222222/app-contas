@@ -553,3 +553,22 @@ form input[type="submit"].modo-edicao {
     border: 1px solid var(--borda);
     border-radius: 4px;
 }
+/*---BARRA DE PESQUISA---*/
+.busca-container{
+    margin-bottom: 15px;
+}
+#inBusca{
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 25px; /*Bordas arredondadas modernas*/
+    border: 1px solid var(--borda);
+    background-color: var(--bg-input);
+    color: var(--texto-principal);
+    transition: box-shadow 0.3s;
+}
+#inBusca:focus{
+    outline: none;
+    box-shadow: 0 0 0 3px var(--destaque); /*Realce azul ao clicar*/
+    border-color: var(--destaque);
+}
