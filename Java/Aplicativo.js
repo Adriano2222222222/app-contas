@@ -324,6 +324,10 @@ const formFeedback = document.querySelector("#formFeedback");
             resumoContasEl.innerHTML = "<p>Nenhuma conta registrada para este mês.</p>";
             listaContasEl.innerHTML = "";
             graficoContainer.style.display = 'none'; //Esconde o gráfico se não houver dados
+
+            //Limpa a área de metas também, para não sobrar "sujeira" de outros meses
+            if(listaMetasEl) listaMetasEl.innerHTML = "";
+            //--------------------------
             return;
         }
         //Limpa a lista apenas se houver contas, para não apagar o resumo do salário
@@ -1091,3 +1095,4 @@ const formFeedback = document.querySelector("#formFeedback");
         atualizarMesSelecionado();  //Carrega as contas do mês atual logo no início
         atualizarBotoesFiltro(); //Garante que o botão 'todas' comece ativo
         inData.value = getHojeFormatado(); //Define a data de hoje no formulário principal
+
