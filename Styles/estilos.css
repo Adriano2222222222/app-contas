@@ -572,3 +572,59 @@ form input[type="submit"].modo-edicao {
     box-shadow: 0 0 0 3px var(--destaque); /*Realce azul ao clicar*/
     border-color: var(--destaque);
 }
+/*---ÁREA DE BACKUP E SEGURANÇA---*/
+.acoes-backup{
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px dashed var(--borda);/*Linha tracejada para separar*/
+}
+.acoes-backup h3{
+    font-size: 1em;
+    color: var(--texto-principal);
+    margin-bottom: 10px;
+    text-align: left;
+}
+.botoes-backup{
+    display: flex;
+    gap: 10px;
+}
+.btn-seguranca{
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    background-color: var(--bg-body);
+    color: var(--texto-principal);
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn-seguranca:hover{
+    background-color: var(--borda-suave);
+}
+/*Ajuste para celular*/
+@media (max-width: 600px){
+    .botoes-backup{
+        flex-direction: column;
+    }
+}
+/*---FEEDBACK---*/
+.btn-feedback{
+    background-color: #6f42c1;
+    color: white;
+}
+/*Estilo para a caixa de texto grande*/
+#feedMensagem{
+    font-family: inherit;
+    resize: vertical; /*Permite esticar para baixo*/
+    background-color: var(--bg-input);
+    color: var(--texto-principal);
+    border: 1px solid var(--borda);
+}
+/*Ajuste de responsividade no rodapé para caber 3 botões*/
+@media (max-width: 600px){
+    .acoes-rodape{
+        flex-direction: column;
+        gap: 8px;
+    }
+}
