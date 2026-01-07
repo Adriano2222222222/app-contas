@@ -1,3 +1,4 @@
+
 const frm = document.querySelector("#formContas");  // obtém elementos da página
 const listaContasEl = document.querySelector("#listaContas");
 const resumoContasEl = document.querySelector("#resumoContas");
@@ -33,6 +34,13 @@ const inCorCategoria = document.querySelector("#inCorCategoria");
 const btnExportar = document.querySelector("#btnExportar");
 const listaMetasEl = document.querySelector("#lista-metas");
 const inBusca = document.querySelector("#inBusca");
+const btnBackup = document.querySelector("#btnBackup");
+const btnRestaurar = document.querySelector("#btnRestaurar");
+const fileInputBackup = document.querySelector("#fileInputBackup");
+const btnFeedback = document.querySelector("#btnFeedback");
+const modalFeedback = document.querySelector("#modal-feedback-container");
+const btnCancelarFeedback = document.querySelector("#btnCancelarFeedback");
+const formFeedback = document.querySelector("#formFeedback");
 
     //---ESTADO DO APLICATIVO---
     //Estrututa para armazenar todas as contas, separadas por mês (ex: {"2025-10": [{...}, {...}]})
@@ -936,6 +944,147 @@ const inBusca = document.querySelector("#inBusca");
             });
         }
     }
+
+    //---SISTEMA DE BACKUP E RESTAURAÇÃO---
+    //1. Função de SALVAR(backup)
+    if(btnBackup){
+        btnBackup.addEventListener("click", () =>{
+        //Cria um objeto com TUDO o que é importante
+            const dadosBackup = {
+                todasAsContas: JSON.parse(localStorage.getItem("todasAsContas") || "{}"),
+                salarioPorMes: JSON.parse(localStorage.getItem("salarioPorMes") || "{}"),
+                appCategorias: JSON.parse(localStorage.getItem("appCategorias") || "[]"),
+                temaEscuro: localStorage.getItem("temaEscuro") || "nao"
+            };
+
+            //Transforma em texto JSON
+            const dadosTexto = JSON.stringify(dadosBackup, null, 2); //null, 2 deixa o arquivo bonito de ler
+
+            //Cria o arquivo para download
+            const blob = new Blob([dadosTexto], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            //Nome do arquivo com a data de hoje (ex: backup_financas_2023_12_15.json)
+            link.setAttribute("download", `backup_financas_${getHojeFormatado()}.json`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            mostrarNotificacao("Backup salvo! Guarde este arquivo com segurança.", "sucesso");
+        });
+    }
+
+    //2.Lógica de RESTAURAR(botão clica no input invisível)
+    if(btnRestaurar){
+        btnRestaurar.addEventListener("click", () =>{
+        //Clica no input invisível para abrir a janela de arquivos
+            fileInputBackup.click();
+        });
+    }
+
+    //3.Quando o usuário escolhe um arquivo
+    if(fileInputBackup){
+        fileInputBackup.addEventListener("change", (e) =>{
+            const arquivo = e.target.files[0];
+            if(!arquivo) return;
+
+            const leitor = new FileReader();
+
+            //Quando terminar de ler o arquivo...
+            leitor.onload = (evento) =>{
+                try{
+                    const conteudo = evento.target.result;
+                    const dados = JSON.parse(conteudo);
+
+                    //Verificação básica de segurança: O arquivo tem contas?
+                    if(!dados.todasAsContas || !dados.appCategorias){
+                        throw new Error("Arquivo inválido ou corrompido.");
+                    }
+
+                    if(confirm("ATENÇÃO: Isso irá substituir todos os dados atuais pelos dados do backup. Deseja continuar?")){
+                    //Salva tudo no LocalStorage
+                        localStorage.setItem("todasAsContas", JSON.stringify(dados.todasAsContas));
+                        localStorage.setItem("salarioPorMes", JSON.stringify(dados.salarioPorMes));
+                        localStorage.setItem("appCategorias", JSON.stringify(dados.appCategorias));
+                        localStorage.setItem("temaEscuro", dados.temaEscuro);
+
+                        alert("Dados restaurados com sucesso! O aplicativo será recarregado.");
+                        location.reload(); //Recarrega a págica para aplicar as mudanças
+                    }
+                }catch (erro){
+                    console.error(erro);
+                    mostrarNotificacao("Erro ao restaurar: O arquivo não é um backup válido.", "erro");
+                }
+            };
+
+            //Manda ler o arquivo como texto
+            leitor.readAsText(arquivo);
+            //Limpa o input para permitir selecionar o mesmo arquivo de novo se errar
+            fileInputBackup.value = "";
+        });
+    }
+    //---SISTEMA DE FEEDBACK (FORMSPREE)---
+    const FORMSPREE_ID = "xdakqlya";
+
+    if(btnFeedback){
+        btnFeedback.addEventListener("click", () =>{
+            modalFeedback.classList.remove("modal-escondido");
+        });
+    }
+    if(btnCancelarFeedback){
+        btnCancelarFeedback.addEventListener("click", ()=>{
+            modalFeedback.classList.add("modal-escondido");
+        });
+    }
+    //Fechar clicando fora
+    if(modalFeedback){
+        modalFeedback.addEventListener("click", (e) =>{
+            if(e.target.id === "modal-feedback-container"){
+                modalFeedback.classList.add("modal-escondido");
+            }
+        });
+    }
+    if(formFeedback){
+        formFeedback.addEventListener("submit", (e) =>{
+            e.preventDefault();
+           //Definição das variáveis do botão
+           const btnEnviar = formFeedback.querySelector("button[type='submit']");
+           const textoOriginal = btnEnviar.innerText;
+
+           //Muda o texto do botão para o usuário saber que esta indo
+           btnEnviar.innerText = "Enviando...";
+           btnEnviar.disabled = true;
+
+            const dados = new FormData(formFeedback);
+
+            //Envia para o Formspree sem sair do app
+            fetch(`https://formspree.io/f/${FORMSPREE_ID}`,{
+                method: "POST",
+                body: dados,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response =>{
+                if(response.ok){
+                    mostrarNotificacao("Feedback enviado com sucesso! Obrigado.", "sucesso");
+                    formFeedback.reset();
+                    modalFeedback.classList.add("modal-escondido");
+                }else{
+                    mostrarNotificacao("Erro ao enviar. Tente novamente.", "erro");
+                }
+            }).catch(error =>{
+                mostrarNotificacao("Erro de conexão.", "erro");
+            }).finally(() =>{
+                btnEnviar.innerText = textoOriginal;
+                btnEnviar.disabled = false;
+            });
+        });
+    }
+
+
         //---INICIALIZAÇÃO---
         inicializarSeletorDeMes();
         popularDropdownsCategorias(); //Popula os <select> na inicialização
