@@ -25,16 +25,17 @@
     ],
     "screenshots":[
         {
-            "src": ".images/screenshot(1).png",
+            "src": ".images/screenshot1.png",
             "sizes": "1080x1920",
             "type":"images/png",
             "form_factor": "narrow"
          },
          {
-            "src": "./images/screenshot(2).png",
+            "src": "./images/screenshot2.png",
             "sizes": "1080x1920",
             "type": "image/png",
             "form_factor": "narrow"
          }
     ]
 }
+
