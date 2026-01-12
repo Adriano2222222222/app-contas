@@ -1,4 +1,4 @@
-const CACHE_NAME = 'financas-v17';
+const CACHE_NAME = 'financas-v18';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -47,6 +47,7 @@ self.addEventListener('fetch', (e) =>{
         })
     );
 });
+
 
 
 
