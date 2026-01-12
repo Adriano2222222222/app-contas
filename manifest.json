@@ -11,13 +11,13 @@
     "categories": ["finance", "productivity"],
     "icons": [
         {
-            "src": "./images/icon-192.png",
+            "src": "https://github.com/Adriano2222222222/app-contas/blob/main/images/icon-192.png?raw=true",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any maskable"
         },
         {
-        "src": "./images/icon-512.png",
+        "src": "https://github.com/Adriano2222222222/app-contas/blob/main/images/icon-512.png?raw=true",
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "any maskable"
@@ -25,12 +25,12 @@
     ],
     "screenshots":[
         {
-            "src": "./images/screenshot1.png",
+            "src": "https://github.com/Adriano2222222222/app-contas/blob/main/images/screenshot%201.png?raw=true",
             "type":"image/png",
             "form_factor": "narrow"
          },
          {
-            "src": "./images/screenshot2.png",
+            "src": "https://github.com/Adriano2222222222/app-contas/blob/main/images/screenshot%202.png?raw=true",
             "type": "image/png",
             "form_factor": "narrow"
          }
