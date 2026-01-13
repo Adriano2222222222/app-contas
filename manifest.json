@@ -25,15 +25,14 @@
   ],
   "screenshots": [
     {
-      "src": "https://raw.githubusercontent.com/Adriano2222222222/app-contas/main/images/screenshot1.png",
+      "src": "https://raw.githubusercontent.com/Adriano2222222222/app-contas/main/images/screenshot%201.png",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "https://raw.githubusercontent.com/Adriano2222222222/app-contas/main/images/screenshot2.png",
+      "src": "https://raw.githubusercontent.com/Adriano2222222222/app-contas/main/images/screenshot%202.png",
       "type": "image/png",
       "form_factor": "narrow"
     }
   ]
 }
-
